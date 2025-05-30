@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TaskFlow - Gestor de Tareas</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            backdrop-filter: blur(10px);
+        }
+
+        .header {
+            background: linear-gradient(135deg, #2d3748 0%, #4a5568 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: repeating-linear-gradient(
+                45deg,
+                transparent,
+                transparent 2px,
+                rgba(255,255,255,0.05) 2px,
+                rgba(255,255,255,0.05) 4px
+            );
+            animation: slide 20s linear infinite;
+        }
+
+        @keyframes slide {
+            0% { transform: translateX(-50px) translateY(-50px); }
+            100% { transform: translateX(0px) translateY(0px); }
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+            position: relative;
+            z-index: 1;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            padding: 30px;
+            background: #f8f9fa;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            text-align: center;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+        }
+
+        .stat-icon {
+            font-size: 2rem;
+            margin-bottom: 10px;
+            color: #667eea;
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #2d3748;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            color: #718096;
+            font-size: 0.9rem;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 400px;
+            gap: 30px;
+            padding: 30px;
+        }
+
+        .task-form {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+            height: fit-content;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #2d3748;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            font-size: 1rem;
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            width: 100%;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .tasks-container {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .filter-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .filter-tab {
+            padding: 10px 20px;
+            background: #e2e8f0;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+
+        .filter-tab.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .task-item {
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
+            transition: all 0.3s ease;
+            border-left: 4px solid #667eea;
+            animation: slideIn 0.5s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .task-item:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+        }
+
+        .task-item.completed {
+            opacity: 0.7;
+            border-left-color: #48bb78;
+        }
+
+        .task-item.high-priority {
+            border-left-color: #f56565;
+        }
+
+        .task-item.medium-priority {
+            border-left-color: #ed8936;
+        }
+
+        .task-header {
+            display: flex;
+            justify-content: between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .task-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #2d3748;
+            flex-grow: 1;
+        }
+
+        .task-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .task-btn {
+            background: none;
+            border: none;
+            padding: 5px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+            font-size: 1rem;
+        }
+
+        .task-btn:hover {
+            background: #f7fafc;
+        }
+
+        .task-btn.complete {
+            color: #48bb78;
+        }
+
+        .task-btn.delete {
+            color: #f56565;
+        }
+
+        .task-description {
+            color: #718096;
+            margin-bottom: 10px;
+            line-height: 1.5;
+        }
+
+        .task-meta {
+            display: flex;
+            gap: 15px;
+            font-size: 0.9rem;
+            color: #a0aec0;
+        }
+
+        .priority-badge {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+
+        .priority-high {
+            background: #fed7d7;
+            color: #c53030;
+        }
+
+        .priority-medium {
+            background: #feebc8;
+            color: #c05621;
+        }
+
+        .priority-low {
+            background: #c6f6d5;
+            color: #22543d;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #718096;
+        }
+
+        .empty-state i {
+            font-size: 3rem;
+            margin-bottom: 15px;
+            color: #cbd5e0;
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .stats {
+                grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1><i class="fas fa-tasks"></i> TaskFlow</h1>
+            <p>Tu gestor de tareas en la nube - De local a global</p>
+        </div>
+
+        <div class="stats">
+            <div class="stat-card">
+                <div class="stat-icon">
+                    <i class="fas fa-list-check"></i>
+                </div>
+                <div class="stat-number" id="totalTasks">0</div>
+                <div class="stat-label">Total Tareas</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">
+                    <i class="fas fa-clock"></i>
+                </div>
+                <div class="stat-number" id="pendingTasks">0</div>
+                <div class="stat-label">Pendientes</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">
+                    <i class="fas fa-check-circle"></i>
+                </div>
+                <div class="stat-number" id="completedTasks">0</div>
+                <div class="stat-label">Completadas</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">
+                    <i class="fas fa-chart-line"></i>
+                </div>
+                <div class="stat-number" id="productivity">0%</div>
+                <div class="stat-label">Productividad</div>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div class="tasks-section">
+                <div class="filter-tabs">
+                    <button class="filter-tab active" data-filter="all">
+                        <i class="fas fa-list"></i> Todas
+                    </button>
+                    <button class="filter-tab" data-filter="pending">
+                        <i class="fas fa-clock"></i> Pendientes
+                    </button>
+                    <button class="filter-tab" data-filter="completed">
+                        <i class="fas fa-check"></i> Completadas
+                    </button>
+                    <button class="filter-tab" data-filter="high">
+                        <i class="fas fa-exclamation"></i> Alta Prioridad
+                    </button>
+                </div>
+                <div class="tasks-container" id="tasksContainer">
+                    <div class="empty-state">
+                        <i class="fas fa-clipboard-list"></i>
+                        <h3>No hay tareas aún</h3>
+                        <p>Agrega tu primera tarea para comenzar</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="task-form">
+                <h3 style="margin-bottom: 20px; color: #2d3748;">
+                    <i class="fas fa-plus-circle"></i> Nueva Tarea
+                </h3>
+                <form id="taskForm">
+                    <div class="form-group">
+                        <label for="taskTitle">Título</label>
+                        <input type="text" id="taskTitle" required placeholder="Ej: Completar proyecto web">
+                    </div>
+                    <div class="form-group">
+                        <label for="taskDescription">Descripción</label>
+                        <textarea id="taskDescription" rows="3" placeholder="Describe los detalles de la tarea..."></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="taskPriority">Prioridad</label>
+                        <select id="taskPriority">
+                            <option value="low">Baja</option>
+                            <option value="medium" selected>Media</option>
+                            <option value="high">Alta</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="taskDueDate">Fecha límite</label>
+                        <input type="date" id="taskDueDate">
+                    </div>
+                    <button type="submit" class="btn">
+                        <i class="fas fa-plus"></i> Agregar Tarea
+                    </button>
+                </form>
+
+                <div style="margin-top: 30px; padding-top: 20px; border-top: 2px solid #e2e8f0;">
+                    <h4 style="color: #2d3748; margin-bottom: 15px;">
+                        <i class="fas fa-cloud"></i> Estado de la App
+                    </h4>
+                    <div style="background: #f0fff4; padding: 15px; border-radius: 10px; border-left: 4px solid #48bb78;">
+                        <p style="color: #22543d; margin: 0;">
+                            <i class="fas fa-check-circle"></i> 
+                            <strong>¡Lista para desplegar!</strong><br>
+                            <small>Esta app está optimizada para plataformas cloud como Vercel, Netlify o GitHub Pages</small>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class TaskManager {
+            constructor() {
+                this.tasks = this.loadTasks();
+                this.currentFilter = 'all';
+                this.taskIdCounter = this.tasks.length > 0 ? Math.max(...this.tasks.map(t => t.id)) + 1 : 1;
+                
+                this.bindEvents();
+                this.render();
+                this.updateStats();
+            }
+
+            loadTasks() {
+                try {
+                    return JSON.parse(window.appData?.tasks || '[]') || [];
+                } catch {
+                    return [];
+                }
+            }
+
+            saveTasks() {
+                if (!window.appData) window.appData = {};
+                window.appData.tasks = JSON.stringify(this.tasks);
+            }
+
+            bindEvents() {
+                document.getElementById('taskForm').addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    this.addTask();
+                });
+
+                document.querySelectorAll('.filter-tab').forEach(tab => {
+                    tab.addEventListener('click', (e) => {
+                        this.setFilter(e.currentTarget.dataset.filter);
+                    });
+                });
+            }
+
+            addTask() {
+                const title = document.getElementById('taskTitle').value.trim();
+                const description = document.getElementById('taskDescription').value.trim();
+                const priority = document.getElementById('taskPriority').value;
+                const dueDate = document.getElementById('taskDueDate').value;
+
+                if (!title) return;
+
+                const task = {
+                    id: this.taskIdCounter++,
+                    title,
+                    description,
+                    priority,
+                    dueDate,
+                    completed: false,
+                    createdAt: new Date().toISOString()
+                };
+
+                this.tasks.unshift(task);
+                this.saveTasks();
+                this.render();
+                this.updateStats();
+                
+                document.getElementById('taskForm').reset();
+                document.getElementById('taskPriority').value = 'medium';
+            }
+
+            toggleTask(id) {
+                const task = this.tasks.find(t => t.id === id);
+                if (task) {
+                    task.completed = !task.completed;
+                    this.saveTasks();
+                    this.render();
+                    this.updateStats();
+                }
+            }
+
+            deleteTask(id) {
+                if (confirm('¿Estás seguro de que quieres eliminar esta tarea?')) {
+                    this.tasks = this.tasks.filter(t => t.id !== id);
+                    this.saveTasks();
+                    this.render();
+                    this.updateStats();
+                }
+            }
+
+            setFilter(filter) {
+                this.currentFilter = filter;
+                
+                document.querySelectorAll('.filter-tab').forEach(tab => {
+                    tab.classList.remove('active');
+                });
+                document.querySelector(`[data-filter="${filter}"]`).classList.add('active');
+                
+                this.render();
+            }
+
+            getFilteredTasks() {
+                switch (this.currentFilter) {
+                    case 'pending':
+                        return this.tasks.filter(t => !t.completed);
+                    case 'completed':
+                        return this.tasks.filter(t => t.completed);
+                    case 'high':
+                        return this.tasks.filter(t => t.priority === 'high');
+                    default:
+                        return this.tasks;
+                }
+            }
+
+            formatDueDate(dateString) {
+                if (!dateString) return '';
+                const date = new Date(dateString);
+                const today = new Date();
+                const diffTime = date - today;
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                
+                if (diffDays < 0) return `<span style="color: #f56565;">Vencida</span>`;
+                if (diffDays === 0) return `<span style="color: #ed8936;">Hoy</span>`;
+                if (diffDays === 1) return `<span style="color: #ecc94b;">Mañana</span>`;
+                return `En ${diffDays} días`;
+            }
+
+            render() {
+                const container = document.getElementById('tasksContainer');
+                const filteredTasks = this.getFilteredTasks();
+                
+                if (filteredTasks.length === 0) {
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <i class="fas fa-clipboard-list"></i>
+                            <h3>No hay tareas en esta categoría</h3>
+                            <p>Las tareas aparecerán aquí cuando las agregues</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                container.innerHTML = filteredTasks.map(task => `
+                    <div class="task-item ${task.completed ? 'completed' : ''} ${task.priority}-priority">
+                        <div class="task-header">
+                            <div class="task-title">${task.title}</div>
+                            <div class="task-actions">
+                                <button class="task-btn complete" onclick="taskManager.toggleTask(${task.id})" title="${task.completed ? 'Marcar como pendiente' : 'Marcar como completada'}">
+                                    <i class="fas fa-${task.completed ? 'undo' : 'check'}"></i>
+                                </button>
+                                <button class="task-btn delete" onclick="taskManager.deleteTask(${task.id})" title="Eliminar tarea">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                        ${task.description ? `<div class="task-description">${task.description}</div>` : ''}
+                        <div class="task-meta">
+                            <span class="priority-badge priority-${task.priority}">
+                                ${task.priority === 'high' ? 'Alta' : task.priority === 'medium' ? 'Media' : 'Baja'}
+                            </span>
+                            ${task.dueDate ? `<span><i class="fas fa-calendar"></i> ${this.formatDueDate(task.dueDate)}</span>` : ''}
+                            <span><i class="fas fa-clock"></i> ${new Date(task.createdAt).toLocaleDateString()}</span>
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            updateStats() {
+                const total = this.tasks.length;
+                const completed = this.tasks.filter(t => t.completed).length;
+                const pending = total - completed;
+                const productivity = total > 0 ? Math.round((completed / total) * 100) : 0;
+
+                document.getElementById('totalTasks').textContent = total;
+                document.getElementById('pendingTasks').textContent = pending;
+                document.getElementById('completedTasks').textContent = completed;
+                document.getElementById('productivity').textContent = productivity + '%';
+            }
+        }
+
+        // Inicializar la aplicación
+        const taskManager = new TaskManager();
+
+        // Simular datos de ejemplo para la demo
+        if (taskManager.tasks.length === 0) {
+            const exampleTasks = [
+                {
+                    id: 1,
+                    title: "Configurar repositorio en GitHub",
+                    description: "Crear el repositorio y hacer el primer commit de la aplicación",
+                    priority: "high",
+                    dueDate: new Date(Date.now() + 86400000).toISOString().split('T')[0],
+                    completed: true,
+                    createdAt: new Date(Date.now() - 172800000).toISOString()
+                },
+                {
+                    id: 2,
+                    title: "Desplegar en plataforma cloud",
+                    description: "Elegir entre Vercel, Netlify o GitHub Pages para el despliegue",
+                    priority: "medium",
+                    dueDate: new Date(Date.now() + 259200000).toISOString().split('T')[0],
+                    completed: false,
+                    createdAt: new Date(Date.now() - 86400000).toISOString()
+                },
+                {
+                    id: 3,
+                    title: "Probar funcionalidades en producción",
+                    description: "Verificar que todas las características funcionen correctamente",
+                    priority: "high",
+                    dueDate: new Date(Date.now() + 432000000).toISOString().split('T')[0],
+                    completed: false,
+                    createdAt: new Date().toISOString()
+                }
+            ];
+            
+            taskManager.tasks = exampleTasks;
+            taskManager.taskIdCounter = 4;
+            taskManager.saveTasks();
+            taskManager.render();
+            taskManager.updateStats();
+        }
+    </script>
+</body>
+</html>
